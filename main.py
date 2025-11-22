@@ -97,9 +97,6 @@ class MainWindow(CTk):
             self.menu_state = True
             self.show_menu()
             
-
-
-    
     def adaptive_ui(self):
         k = 1.25
         w_w = self.winfo_width() / k
