@@ -1,4 +1,9 @@
 from customtkinter import *
+import socket
+import threading
+
+HOST = 'localhost'
+PORT = 8080
 
 class MainWindow(CTk):
     def __init__(self):#self  - screen
@@ -36,9 +41,10 @@ class MainWindow(CTk):
         #chat ui
         self.btn_menu = CTkButton(self, text='☰', width = 30, height = 30,
                                   command=self.change_state)
-        self.chat = CTkTextbox(self,state="disabled", fg_color='white')
+        self.chat = CTkTextbox(self,state="disable", fg_color='white')
         self.message = CTkEntry(self, placeholder_text='щось пиши...')
-        self.send_message = CTkButton(self, text='▶', width = 50, height =30)
+        self.send_message = CTkButton(self, text='▶', width = 50, height =30,
+                                      command=self.send_message_)
         #chat pos
         self.send_message.place(x = 545, y = 365)
         self.btn_menu.place(x = 5, y = 5)
@@ -51,10 +57,62 @@ class MainWindow(CTk):
         self.size_menu = 0 
         #
         self.user_name = '007'
-
+        #client
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((
+                HOST, PORT
+            ))
+            hello = f'TEXT@{self.user_name}@[SYSTEM] {self.user_name} приєднався(лась) до чату!\n'
+            self.sock.send(hello.encode('utf-8'))
+        except:
+            self.add_message('Зв\'язок з сервером втрачено')
 
 
         self.adaptive_ui()
+
+    def add_message(self, text):
+        self.chat.configure(state='normal')
+        self.chat.insert(END, text + '\n')# \n - ENTER
+        self.chat.configure(state='disable')
+
+    def send_message_(self):
+        message = self.message.get()
+        if message:
+            self.add_message(f'{self.user_name}: {message}')#можна буде закоментувати
+            data = f'TEXT@{self.user_name}@{message}\n'
+            try:
+                self.sock.sendall(data.encode())
+            except:
+                pass
+        self.message.delete(0, 'end')
+
+    def recv_message(self):
+        buffer = ''
+        while True:
+            try:
+                chunk = self.sock.recv(4096)
+                if not chunk:
+                    break
+                buffer += chunk.decode()
+                while '\n' in buffer:
+                    line, buffer = buffer.split('\n', 1)
+                    self.handle_line(line.strip())
+            except:
+                break
+        self.sock.close()
+
+    def handle_line(self, line):
+        if not line:
+            return
+        parts = line.split('@',3)
+        if parts[0] == 'TEXT':
+            if len(parts) >= 3:
+                author = parts[1]
+                message = parts[2]
+                self.add_message(f'{author}: {message}')
+        else:
+            self.add_message(line)
 
     def change_theme(self, value):
         set_appearance_mode(value)
