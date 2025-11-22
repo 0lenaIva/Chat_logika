@@ -2,8 +2,8 @@ from customtkinter import *
 import socket
 import threading
 
-HOST = 'localhost'
-PORT = 8080
+HOST = '0.tcp.eu.ngrok.io'#
+PORT = 17646#
 
 class MainWindow(CTk):
     def __init__(self):#self  - screen
@@ -65,6 +65,7 @@ class MainWindow(CTk):
             ))
             hello = f'TEXT@{self.user_name}@[SYSTEM] {self.user_name} приєднався(лась) до чату!\n'
             self.sock.send(hello.encode('utf-8'))
+            threading.Thread(target=self.recv_message, daemon=True).start()
         except:
             self.add_message('Зв\'язок з сервером втрачено')
 
