@@ -2,12 +2,57 @@ from customtkinter import *
 import socket
 import threading
 
-HOST = '0.tcp.eu.ngrok.io'#
-PORT = 17646#
+HOST = 'localhost'
+PORT = 8080
+
+class RegisterWindow(CTk):
+    def __init__(self):
+        super().__init__()
+        self.user_name = None
+        self.title('Приєднатись до сервера')
+        self.geometry('300x300')
+
+        CTkLabel(self, text='Вхід в чат',
+                 font=('Times New Roman', 20, 'bold')).pack(pady=40)
+        
+        self.name_entry = CTkEntry(self, placeholder_text='Введіть ім\'я')
+        self.host_entry = CTkEntry(self, placeholder_text='Введіть хост сервера')
+        self.port_entry = CTkEntry(self, placeholder_text='введіть порт сервера')
+        self.submit_button = CTkButton(self, text ='Приєднатись',
+                                       font=('Times New Roman', 18),
+                                       command=self.start_chat)
+        
+        self.name_entry.pack(padx=15, fill='x')
+        self.host_entry.pack(pady=(10,5), padx=15,fill='x')
+        self.port_entry.pack(pady=(5,20), padx=15,fill='x')
+        self.submit_button.pack(pady=(10,10))
+
+    def start_chat(self):
+        self.user_name = self.name_entry.get().strip()
+        try:
+            print(self.host_entry.get(),self.port_entry.get())
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((
+                self.host_entry.get(),
+                int(self.port_entry.get())
+            ))
+            
+            hello = f'TEXT@{self.user_name}@[SYSTEM] {self.user_name} приєднався(лась) до чату!\n'
+            self.sock.send(hello.encode('utf-8'))
+            self.destroy()
+            win = MainWindow(self.sock, self.user_name)
+            win.mainloop()
+        except Exception as e:
+            print(f'Error: \n{e}')
+            self.host_entry.delete(0, END)
+            self.port_entry.delete(0, END)
+
 
 class MainWindow(CTk):
-    def __init__(self):#self  - screen
+    def __init__(self, sock, user_name):#self  - screen
         super().__init__()
+        self.sock = sock
+        self.user_name = user_name
         self.geometry('600x450')
         self.minsize(600, 450)
         set_appearance_mode('system')
@@ -56,20 +101,19 @@ class MainWindow(CTk):
         self.menu_state = False
         self.size_menu = 0 
         #
-        self.user_name = '007'
+        #self.user_name = '007'
         #client
-        try:
+        '''try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((
                 HOST, PORT
             ))
             hello = f'TEXT@{self.user_name}@[SYSTEM] {self.user_name} приєднався(лась) до чату!\n'
             self.sock.send(hello.encode('utf-8'))
-            threading.Thread(target=self.recv_message, daemon=True).start()
         except:
-            self.add_message('Зв\'язок з сервером втрачено')
+            self.add_message('Зв\'язок з сервером втрачено')'''
 
-
+        threading.Thread(target=self.recv_message, daemon=True).start()
         self.adaptive_ui()
 
     def add_message(self, text):
@@ -175,5 +219,5 @@ class MainWindow(CTk):
         self.after(50, self.adaptive_ui)
 
 
-app = MainWindow()
+app = RegisterWindow()
 app.mainloop()
